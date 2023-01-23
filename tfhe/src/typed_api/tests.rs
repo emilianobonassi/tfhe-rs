@@ -1,3 +1,4 @@
+#[cfg(any(feature = "boolean", feature = "shortint", feature = "integer"))]
 use crate::typed_api::prelude::*;
 #[cfg(feature = "boolean")]
 use crate::typed_api::FheBool;
