@@ -259,6 +259,108 @@ pub fn polynomial_wrapping_monic_monomial_mul_assign<Scalar, OutputCont>(
         .for_each(|a| *a = a.wrapping_neg());
 }
 
+/// Divides (mod $(X^{N}+1)$), the input polynomial with a monic monomial of a given degree i.e.
+/// $X^{degree}$.
+///
+/// # Note
+///
+/// Computations wrap around (similar to computing modulo $2^{n\_{bits}}$) when exceeding the
+/// unsigned integer capacity.
+///
+/// # Examples
+///
+/// ```
+/// use tfhe::core_crypto::algorithms::polynomial_algorithms::*;
+/// use tfhe::core_crypto::commons::parameters::*;
+/// use tfhe::core_crypto::entities::*;
+/// let input = Polynomial::from_container(vec![1u8, 2, 3]);
+/// let mut output = Polynomial::from_container(vec![0, 0, 0]);
+/// polynomial_wrapping_monic_monomial_div(&mut output, &input, MonomialDegree(2));
+/// assert_eq!(output.as_ref(), &[3, 255, 254]);
+/// ```
+pub fn polynomial_wrapping_monic_monomial_div<Scalar, OutputCont, InputCont>(
+    output: &mut Polynomial<OutputCont>,
+    input: &Polynomial<InputCont>,
+    monomial_degree: MonomialDegree,
+) where
+    Scalar: UnsignedInteger,
+    OutputCont: ContainerMut<Element = Scalar>,
+    InputCont: Container<Element = Scalar>,
+{
+    let polynomial_len = output.container_len();
+    let remaining_degree = monomial_degree.0 % output.as_ref().container_len();
+
+    for (dst, &src) in output[..].iter_mut().zip(input[remaining_degree..].iter()) {
+        *dst = src;
+    }
+
+    for (dst, &src) in output[polynomial_len - remaining_degree..]
+        .iter_mut()
+        .zip(input[..remaining_degree].iter())
+    {
+        *dst = src.wrapping_neg();
+    }
+
+    let full_cycles_count = monomial_degree.0 / polynomial_len;
+    if full_cycles_count % 2 != 0 {
+        output
+            .as_mut()
+            .iter_mut()
+            .for_each(|a| *a = a.wrapping_neg());
+    }
+}
+
+/// Multiply (mod $(X^{N}+1)$), the input polynomial with a monic monomial of a given degree i.e.
+/// $X^{degree}$.
+///
+/// # Note
+///
+/// Computations wrap around (similar to computing modulo $2^{n\_{bits}}$) when exceeding the
+/// unsigned integer capacity.
+///
+/// # Examples
+///
+/// ```
+/// use tfhe::core_crypto::algorithms::polynomial_algorithms::*;
+/// use tfhe::core_crypto::commons::parameters::*;
+/// use tfhe::core_crypto::entities::*;
+/// let input = Polynomial::from_container(vec![1u8, 2, 3]);
+/// let mut output = Polynomial::from_container(vec![0, 0, 0]);
+/// polynomial_wrapping_monic_monomial_mul(&mut output, &input, MonomialDegree(2));
+/// assert_eq!(output.as_ref(), &[254, 253, 1]);
+/// ```
+pub fn polynomial_wrapping_monic_monomial_mul<Scalar, OutputCont, InputCont>(
+    output: &mut Polynomial<OutputCont>,
+    input: &Polynomial<InputCont>,
+    monomial_degree: MonomialDegree,
+) where
+    Scalar: UnsignedInteger,
+    OutputCont: ContainerMut<Element = Scalar>,
+    InputCont: Container<Element = Scalar>,
+{
+    let polynomial_len = output.container_len();
+    let remaining_degree = monomial_degree.0 % output.as_ref().container_len();
+
+    for (dst, &src) in output[..remaining_degree]
+        .iter_mut()
+        .zip(input[polynomial_len - remaining_degree..].iter())
+    {
+        *dst = src.wrapping_neg();
+    }
+
+    for (dst, &src) in output[remaining_degree..].iter_mut().zip(input[..].iter()) {
+        *dst = src;
+    }
+
+    let full_cycles_count = monomial_degree.0 / polynomial_len;
+    if full_cycles_count % 2 != 0 {
+        output
+            .as_mut()
+            .iter_mut()
+            .for_each(|a| *a = a.wrapping_neg());
+    }
+}
+
 /// Subtract the sum of the element-wise product between two lists of polynomials, to the output
 /// polynomial.
 ///
