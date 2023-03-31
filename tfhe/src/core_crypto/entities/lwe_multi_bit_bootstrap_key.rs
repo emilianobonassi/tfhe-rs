@@ -8,7 +8,10 @@ use aligned_vec::{avec, ABox};
 use concrete_fft::c64;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct LweMultiBitBootstrapKey<C: Container> {
+pub struct LweMultiBitBootstrapKey<C: Container>
+where
+    C::Element: UnsignedInteger,
+{
     // An LweMultiBitBootstrapKey is literally a GgswCiphertextList, so we wrap a
     // GgswCiphertextList and use Deref to have access to all the primitives of the
     // GgswCiphertextList easily
@@ -16,7 +19,9 @@ pub struct LweMultiBitBootstrapKey<C: Container> {
     grouping_factor: LweBskGroupingFactor,
 }
 
-impl<C: Container> std::ops::Deref for LweMultiBitBootstrapKey<C> {
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> std::ops::Deref
+    for LweMultiBitBootstrapKey<C>
+{
     type Target = GgswCiphertextList<C>;
 
     fn deref(&self) -> &GgswCiphertextList<C> {
@@ -24,13 +29,15 @@ impl<C: Container> std::ops::Deref for LweMultiBitBootstrapKey<C> {
     }
 }
 
-impl<C: ContainerMut> std::ops::DerefMut for LweMultiBitBootstrapKey<C> {
+impl<Scalar: UnsignedInteger, C: ContainerMut<Element = Scalar>> std::ops::DerefMut
+    for LweMultiBitBootstrapKey<C>
+{
     fn deref_mut(&mut self) -> &mut GgswCiphertextList<C> {
         &mut self.ggsw_list
     }
 }
 
-impl<Scalar, C: Container<Element = Scalar>> LweMultiBitBootstrapKey<C> {
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> LweMultiBitBootstrapKey<C> {
     /// Create an [`LweMultiBitBootstrapKey`] from an existing container.
     ///
     /// # Note
@@ -121,6 +128,7 @@ impl<Scalar, C: Container<Element = Scalar>> LweMultiBitBootstrapKey<C> {
         decomp_base_log: DecompositionBaseLog,
         decomp_level_count: DecompositionLevelCount,
         grouping_factor: LweBskGroupingFactor,
+        ciphertext_modulus: CiphertextModulus<C::Element>,
     ) -> LweMultiBitBootstrapKey<C> {
         let bsk = LweMultiBitBootstrapKey {
             ggsw_list: GgswCiphertextList::from_container(
@@ -129,6 +137,7 @@ impl<Scalar, C: Container<Element = Scalar>> LweMultiBitBootstrapKey<C> {
                 polynomial_size,
                 decomp_base_log,
                 decomp_level_count,
+                ciphertext_modulus,
             ),
             grouping_factor,
         };
@@ -192,11 +201,12 @@ impl<Scalar, C: Container<Element = Scalar>> LweMultiBitBootstrapKey<C> {
             self.decomposition_base_log(),
             self.decomposition_level_count(),
             self.grouping_factor(),
+            self.ciphertext_modulus(),
         )
     }
 }
 
-impl<Scalar, C: ContainerMut<Element = Scalar>> LweMultiBitBootstrapKey<C> {
+impl<Scalar: UnsignedInteger, C: ContainerMut<Element = Scalar>> LweMultiBitBootstrapKey<C> {
     /// Mutable variant of [`LweMultiBitBootstrapKey::as_view`].
     pub fn as_mut_view(&mut self) -> LweMultiBitBootstrapKey<&'_ mut [Scalar]> {
         let glwe_size = self.glwe_size();
@@ -204,6 +214,7 @@ impl<Scalar, C: ContainerMut<Element = Scalar>> LweMultiBitBootstrapKey<C> {
         let decomp_base_log = self.decomposition_base_log();
         let decomp_level_count = self.decomposition_level_count();
         let grouping_factor = self.grouping_factor();
+        let ciphertext_modulus = self.ciphertext_modulus();
         LweMultiBitBootstrapKey::from_container(
             self.as_mut(),
             glwe_size,
@@ -211,6 +222,7 @@ impl<Scalar, C: ContainerMut<Element = Scalar>> LweMultiBitBootstrapKey<C> {
             decomp_base_log,
             decomp_level_count,
             grouping_factor,
+            ciphertext_modulus,
         )
     }
 }
@@ -218,7 +230,7 @@ impl<Scalar, C: ContainerMut<Element = Scalar>> LweMultiBitBootstrapKey<C> {
 /// An [`LweMultiBitBootstrapKey`] owning the memory for its own storage.
 pub type LweMultiBitBootstrapKeyOwned<Scalar> = LweMultiBitBootstrapKey<Vec<Scalar>>;
 
-impl<Scalar: Copy> LweMultiBitBootstrapKeyOwned<Scalar> {
+impl<Scalar: UnsignedInteger> LweMultiBitBootstrapKeyOwned<Scalar> {
     /// Allocate memory and create a new owned [`LweMultiBitBootstrapKey`].
     ///
     /// # Note
@@ -230,6 +242,7 @@ impl<Scalar: Copy> LweMultiBitBootstrapKeyOwned<Scalar> {
     /// key as output.
     ///
     /// See [`LweMultiBitBootstrapKey::from_container`] for usage.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         fill_with: Scalar,
         glwe_size: GlweSize,
@@ -238,6 +251,7 @@ impl<Scalar: Copy> LweMultiBitBootstrapKeyOwned<Scalar> {
         decomp_level_count: DecompositionLevelCount,
         input_lwe_dimension: LweDimension,
         grouping_factor: LweBskGroupingFactor,
+        ciphertext_modulus: CiphertextModulus<Scalar>,
     ) -> LweMultiBitBootstrapKeyOwned<Scalar> {
         assert!(
             input_lwe_dimension.0 % grouping_factor.0 == 0,
@@ -258,6 +272,7 @@ impl<Scalar: Copy> LweMultiBitBootstrapKeyOwned<Scalar> {
                 GgswCiphertextCount(
                     equivalent_multi_bit_dimension * grouping_factor.ggsw_per_multi_bit_element().0,
                 ),
+                ciphertext_modulus,
             ),
             grouping_factor,
         }

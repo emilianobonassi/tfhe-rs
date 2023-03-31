@@ -101,8 +101,12 @@ pub fn private_functional_keyswitch_lwe_ciphertext_list_and_pack_in_glwe_ciphert
 
     assert!(input.lwe_ciphertext_count().0 <= output.polynomial_size().0);
     output.as_mut().fill(Scalar::ZERO);
-    let mut buffer =
-        GlweCiphertext::new(Scalar::ZERO, output.glwe_size(), output.polynomial_size());
+    let mut buffer = GlweCiphertext::new(
+        Scalar::ZERO,
+        output.glwe_size(),
+        output.polynomial_size(),
+        output.ciphertext_modulus(),
+    );
     // for each ciphertext, call mono_key_switch
     for (degree, input_ciphertext) in input.iter().enumerate() {
         private_functional_keyswitch_lwe_ciphertext_into_glwe_ciphertext(

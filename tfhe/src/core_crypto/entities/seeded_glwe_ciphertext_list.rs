@@ -9,26 +9,30 @@ use crate::core_crypto::entities::*;
 /// A seeded list containing
 /// [`GLWE ciphertexts`](`crate::core_crypto::entities::GlweCiphertext`).
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct SeededGlweCiphertextList<C: Container> {
+pub struct SeededGlweCiphertextList<C: Container>
+where
+    C::Element: UnsignedInteger,
+{
     data: C,
     glwe_size: GlweSize,
     polynomial_size: PolynomialSize,
     compression_seed: CompressionSeed,
+    ciphertext_modulus: CiphertextModulus<C::Element>,
 }
 
-impl<T, C: Container<Element = T>> AsRef<[T]> for SeededGlweCiphertextList<C> {
+impl<T: UnsignedInteger, C: Container<Element = T>> AsRef<[T]> for SeededGlweCiphertextList<C> {
     fn as_ref(&self) -> &[T] {
         self.data.as_ref()
     }
 }
 
-impl<T, C: ContainerMut<Element = T>> AsMut<[T]> for SeededGlweCiphertextList<C> {
+impl<T: UnsignedInteger, C: ContainerMut<Element = T>> AsMut<[T]> for SeededGlweCiphertextList<C> {
     fn as_mut(&mut self) -> &mut [T] {
         self.data.as_mut()
     }
 }
 
-impl<Scalar, C: Container<Element = Scalar>> SeededGlweCiphertextList<C> {
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> SeededGlweCiphertextList<C> {
     /// Create an [`SeededGlweCiphertextList`] from an existing container.
     ///
     /// # Note
@@ -101,12 +105,14 @@ impl<Scalar, C: Container<Element = Scalar>> SeededGlweCiphertextList<C> {
         glwe_size: GlweSize,
         polynomial_size: PolynomialSize,
         compression_seed: CompressionSeed,
+        ciphertext_modulus: CiphertextModulus<C::Element>,
     ) -> SeededGlweCiphertextList<C> {
         SeededGlweCiphertextList {
             data: container,
             glwe_size,
             polynomial_size,
             compression_seed,
+            ciphertext_modulus,
         }
     }
 
@@ -129,6 +135,13 @@ impl<Scalar, C: Container<Element = Scalar>> SeededGlweCiphertextList<C> {
     /// See [`SeededGlweCiphertextList::from_container`] for usage.
     pub fn compression_seed(&self) -> CompressionSeed {
         self.compression_seed
+    }
+
+    /// Return the [`CiphertextModulus`] of the [`SeededGlweCiphertextList`].
+    ///
+    /// See [`SeededGlweCiphertextList::from_container`] for usage.
+    pub fn ciphertext_modulus(&self) -> CiphertextModulus<C::Element> {
+        self.ciphertext_modulus
     }
 
     /// Return the [`GlweCiphertextCount`] of the [`SeededGlweCiphertextList`].
@@ -158,6 +171,7 @@ impl<Scalar, C: Container<Element = Scalar>> SeededGlweCiphertextList<C> {
             self.glwe_size(),
             self.polynomial_size(),
             self.glwe_ciphertext_count(),
+            self.ciphertext_modulus(),
         );
         decompress_seeded_glwe_ciphertext_list::<_, _, _, ActivatedRandomGenerator>(
             &mut decompressed_list,
@@ -174,21 +188,24 @@ impl<Scalar, C: Container<Element = Scalar>> SeededGlweCiphertextList<C> {
             self.glwe_size(),
             self.polynomial_size(),
             self.compression_seed(),
+            self.ciphertext_modulus(),
         )
     }
 }
 
-impl<Scalar, C: ContainerMut<Element = Scalar>> SeededGlweCiphertextList<C> {
+impl<Scalar: UnsignedInteger, C: ContainerMut<Element = Scalar>> SeededGlweCiphertextList<C> {
     /// Mutable variant of [`SeededGlweCiphertextList::as_view`].
     pub fn as_mut_view(&mut self) -> SeededGlweCiphertextList<&'_ mut [Scalar]> {
         let glwe_size = self.glwe_size();
         let polynomial_size = self.polynomial_size();
         let compression_seed = self.compression_seed();
+        let ciphertext_modulus = self.ciphertext_modulus();
         SeededGlweCiphertextList::from_container(
             self.as_mut(),
             glwe_size,
             polynomial_size,
             compression_seed,
+            ciphertext_modulus,
         )
     }
 }
@@ -201,7 +218,7 @@ pub type SeededGlweCiphertextListView<'data, Scalar> = SeededGlweCiphertextList<
 pub type SeededGlweCiphertextListMutView<'data, Scalar> =
     SeededGlweCiphertextList<&'data mut [Scalar]>;
 
-impl<Scalar: Copy> SeededGlweCiphertextListOwned<Scalar> {
+impl<Scalar: UnsignedInteger> SeededGlweCiphertextListOwned<Scalar> {
     /// Allocate memory and create a new owned [`SeededGlweCiphertextList`].
     ///
     /// # Note
@@ -218,20 +235,24 @@ impl<Scalar: Copy> SeededGlweCiphertextListOwned<Scalar> {
         polynomial_size: PolynomialSize,
         ciphertext_count: GlweCiphertextCount,
         compression_seed: CompressionSeed,
+        ciphertext_modulus: CiphertextModulus<Scalar>,
     ) -> SeededGlweCiphertextListOwned<Scalar> {
         SeededGlweCiphertextListOwned::from_container(
             vec![fill_with; ciphertext_count.0 * polynomial_size.0],
             glwe_size,
             polynomial_size,
             compression_seed,
+            ciphertext_modulus,
         )
     }
 }
 
-impl<C: Container> ContiguousEntityContainer for SeededGlweCiphertextList<C> {
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> ContiguousEntityContainer
+    for SeededGlweCiphertextList<C>
+{
     type Element = C::Element;
 
-    type EntityViewMetadata = SeededGlweCiphertextCreationMetadata;
+    type EntityViewMetadata = SeededGlweCiphertextCreationMetadata<Self::Element>;
 
     type EntityView<'this> = SeededGlweCiphertext<&'this [Self::Element]>
     where
@@ -244,7 +265,11 @@ impl<C: Container> ContiguousEntityContainer for SeededGlweCiphertextList<C> {
         Self: 'this;
 
     fn get_entity_view_creation_metadata(&self) -> Self::EntityViewMetadata {
-        SeededGlweCiphertextCreationMetadata(self.glwe_size(), self.compression_seed())
+        SeededGlweCiphertextCreationMetadata(
+            self.glwe_size(),
+            self.compression_seed(),
+            self.ciphertext_modulus(),
+        )
     }
 
     fn get_entity_view_pod_size(&self) -> usize {
@@ -261,7 +286,9 @@ impl<C: Container> ContiguousEntityContainer for SeededGlweCiphertextList<C> {
     }
 }
 
-impl<C: ContainerMut> ContiguousEntityContainerMut for SeededGlweCiphertextList<C> {
+impl<Scalar: UnsignedInteger, C: ContainerMut<Element = Scalar>> ContiguousEntityContainerMut
+    for SeededGlweCiphertextList<C>
+{
     type EntityMutView<'this> = SeededGlweCiphertext<&'this mut [Self::Element]>
     where
         Self: 'this;

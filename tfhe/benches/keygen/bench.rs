@@ -34,6 +34,7 @@ fn criterion_bench(c: &mut Criterion) {
                 parameters.pbs_base_log,
                 parameters.pbs_level,
                 parameters.glwe_modular_std_dev,
+                CiphertextModulus::new_native(),
                 &mut encryption_generator,
             );
         });

@@ -5,21 +5,21 @@ use crate::core_crypto::commons::traits::*;
 
 /// A convenience structure to easily manipulate the body of an [`LweCiphertext`].
 #[derive(Clone, Debug)]
-pub struct LweBody<T: UnsignedInteger> {
-    pub data: T,
-    pub ciphertext_modulus: CiphertextModulus<T>,
+pub struct LweBody<Scalar: UnsignedInteger> {
+    pub data: Scalar,
+    pub ciphertext_modulus: CiphertextModulus<Scalar>,
 }
 
 #[derive(Debug)]
-pub struct LweBodyRef<'a, T: UnsignedInteger> {
-    pub data: &'a T,
-    pub ciphertext_modulus: CiphertextModulus<T>,
+pub struct LweBodyRef<'a, Scalar: UnsignedInteger> {
+    pub data: &'a Scalar,
+    pub ciphertext_modulus: CiphertextModulus<Scalar>,
 }
 
 #[derive(Debug)]
-pub struct LweBodyRefMut<'a, T: UnsignedInteger> {
-    pub data: &'a mut T,
-    pub ciphertext_modulus: CiphertextModulus<T>,
+pub struct LweBodyRefMut<'a, Scalar: UnsignedInteger> {
+    pub data: &'a mut Scalar,
+    pub ciphertext_modulus: CiphertextModulus<Scalar>,
 }
 
 #[derive(Clone, Debug)]
@@ -67,6 +67,9 @@ impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> LweMask<C> {
         LweDimension(self.data.container_len())
     }
 
+    /// Return the [`CiphertextModulus`] of the [`LweMask`].
+    ///
+    /// See [`LweMask::from_container`] for usage.
     pub fn ciphertext_modulus(&self) -> CiphertextModulus<C::Element> {
         self.ciphertext_modulus
     }
@@ -315,6 +318,9 @@ impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> LweCiphertext<C> {
         self.data
     }
 
+    /// Return the [`CiphertextModulus`] of the [`LweCiphertext`].
+    ///
+    /// See [`LweCiphertext::from_container`] for usage.
     pub fn ciphertext_modulus(&self) -> CiphertextModulus<C::Element> {
         self.ciphertext_modulus
     }

@@ -154,6 +154,7 @@ fn mem_optimized_pbs<Scalar: UnsignedTorus + CastInto<usize>>(c: &mut Criterion)
             Scalar::ZERO,
             params.glwe_dimension.to_glwe_size(),
             params.polynomial_size,
+            tfhe::core_crypto::prelude::CiphertextModulus::new_native(),
         );
 
         // Allocate the LweCiphertext to store the result of the PBS

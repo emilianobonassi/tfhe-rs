@@ -13,14 +13,19 @@ use crate::core_crypto::entities::*;
 /// [`SeededGgswCiphertextList`] for ease of use. See [`SeededGgswCiphertextList`] for additional
 /// methods.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct SeededLweBootstrapKey<C: Container> {
+pub struct SeededLweBootstrapKey<C: Container>
+where
+    C::Element: UnsignedInteger,
+{
     // An SeededLweBootstrapKey is literally a SeededGgswCiphertextList, so we wrap a
     // GgswCiphertextList and use Deref to have access to all the primitives of the
     // SeededGgswCiphertextList easily
     ggsw_list: SeededGgswCiphertextList<C>,
 }
 
-impl<C: Container> std::ops::Deref for SeededLweBootstrapKey<C> {
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> std::ops::Deref
+    for SeededLweBootstrapKey<C>
+{
     type Target = SeededGgswCiphertextList<C>;
 
     fn deref(&self) -> &SeededGgswCiphertextList<C> {
@@ -28,13 +33,15 @@ impl<C: Container> std::ops::Deref for SeededLweBootstrapKey<C> {
     }
 }
 
-impl<C: ContainerMut> std::ops::DerefMut for SeededLweBootstrapKey<C> {
+impl<Scalar: UnsignedInteger, C: ContainerMut<Element = Scalar>> std::ops::DerefMut
+    for SeededLweBootstrapKey<C>
+{
     fn deref_mut(&mut self) -> &mut SeededGgswCiphertextList<C> {
         &mut self.ggsw_list
     }
 }
 
-impl<Scalar, C: Container<Element = Scalar>> SeededLweBootstrapKey<C> {
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> SeededLweBootstrapKey<C> {
     /// Create an [`SeededLweBootstrapKey`] from an existing container.
     ///
     /// # Note
@@ -132,6 +139,7 @@ impl<Scalar, C: Container<Element = Scalar>> SeededLweBootstrapKey<C> {
         decomp_base_log: DecompositionBaseLog,
         decomp_level_count: DecompositionLevelCount,
         compression_seed: CompressionSeed,
+        ciphertext_modulus: CiphertextModulus<C::Element>,
     ) -> SeededLweBootstrapKey<C> {
         SeededLweBootstrapKey {
             ggsw_list: SeededGgswCiphertextList::from_container(
@@ -141,6 +149,7 @@ impl<Scalar, C: Container<Element = Scalar>> SeededLweBootstrapKey<C> {
                 decomp_base_log,
                 decomp_level_count,
                 compression_seed,
+                ciphertext_modulus,
             ),
         }
     }
@@ -181,6 +190,7 @@ impl<Scalar, C: Container<Element = Scalar>> SeededLweBootstrapKey<C> {
             self.decomposition_base_log(),
             self.decomposition_level_count(),
             self.input_lwe_dimension(),
+            self.ciphertext_modulus(),
         );
         decompress_seeded_lwe_bootstrap_key::<_, _, _, ActivatedRandomGenerator>(
             &mut decompressed_bsk,
@@ -199,11 +209,12 @@ impl<Scalar, C: Container<Element = Scalar>> SeededLweBootstrapKey<C> {
             self.decomposition_base_log(),
             self.decomposition_level_count(),
             self.compression_seed(),
+            self.ciphertext_modulus(),
         )
     }
 }
 
-impl<Scalar, C: ContainerMut<Element = Scalar>> SeededLweBootstrapKey<C> {
+impl<Scalar: UnsignedInteger, C: ContainerMut<Element = Scalar>> SeededLweBootstrapKey<C> {
     /// Mutable variant of [`SeededLweBootstrapKey::as_view`].
     pub fn as_mut_view(&mut self) -> SeededLweBootstrapKey<&'_ mut [Scalar]> {
         let glwe_size = self.glwe_size();
@@ -211,6 +222,7 @@ impl<Scalar, C: ContainerMut<Element = Scalar>> SeededLweBootstrapKey<C> {
         let decomp_base_log = self.decomposition_base_log();
         let decomp_level_count = self.decomposition_level_count();
         let compression_seed = self.compression_seed();
+        let ciphertext_modulus = self.ciphertext_modulus();
         SeededLweBootstrapKey::from_container(
             self.as_mut(),
             glwe_size,
@@ -218,6 +230,7 @@ impl<Scalar, C: ContainerMut<Element = Scalar>> SeededLweBootstrapKey<C> {
             decomp_base_log,
             decomp_level_count,
             compression_seed,
+            ciphertext_modulus,
         )
     }
 }
@@ -225,7 +238,7 @@ impl<Scalar, C: ContainerMut<Element = Scalar>> SeededLweBootstrapKey<C> {
 /// An [`SeededLweBootstrapKey`] owning the memory for its own storage.
 pub type SeededLweBootstrapKeyOwned<Scalar> = SeededLweBootstrapKey<Vec<Scalar>>;
 
-impl<Scalar: Copy> SeededLweBootstrapKeyOwned<Scalar> {
+impl<Scalar: UnsignedInteger> SeededLweBootstrapKeyOwned<Scalar> {
     /// Allocate memory and create a new owned [`SeededLweBootstrapKey`].
     ///
     /// # Note
@@ -237,6 +250,7 @@ impl<Scalar: Copy> SeededLweBootstrapKeyOwned<Scalar> {
     /// this key as output.
     ///
     /// See [`SeededLweBootstrapKey::from_container`] for usage.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         fill_with: Scalar,
         glwe_size: GlweSize,
@@ -245,6 +259,7 @@ impl<Scalar: Copy> SeededLweBootstrapKeyOwned<Scalar> {
         decomp_level_count: DecompositionLevelCount,
         input_lwe_dimension: LweDimension,
         compression_seed: CompressionSeed,
+        ciphertext_modulus: CiphertextModulus<Scalar>,
     ) -> SeededLweBootstrapKeyOwned<Scalar> {
         SeededLweBootstrapKeyOwned {
             ggsw_list: SeededGgswCiphertextList::new(
@@ -255,6 +270,7 @@ impl<Scalar: Copy> SeededLweBootstrapKeyOwned<Scalar> {
                 decomp_level_count,
                 GgswCiphertextCount(input_lwe_dimension.0),
                 compression_seed,
+                ciphertext_modulus,
             ),
         }
     }

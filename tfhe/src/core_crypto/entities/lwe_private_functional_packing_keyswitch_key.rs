@@ -297,10 +297,12 @@ impl<Scalar: Copy> LwePrivateFunctionalPackingKeyswitchKeyOwned<Scalar> {
     }
 }
 
-impl<C: Container> ContiguousEntityContainer for LwePrivateFunctionalPackingKeyswitchKey<C> {
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> ContiguousEntityContainer
+    for LwePrivateFunctionalPackingKeyswitchKey<C>
+{
     type Element = C::Element;
 
-    type EntityViewMetadata = GlweCiphertextListCreationMetadata;
+    type EntityViewMetadata = GlweCiphertextListCreationMetadata<Self::Element>;
 
     type EntityView<'this> = GlweCiphertextListView<'this, Self::Element>
     where
@@ -315,7 +317,12 @@ impl<C: Container> ContiguousEntityContainer for LwePrivateFunctionalPackingKeys
         Self: 'this;
 
     fn get_entity_view_creation_metadata(&self) -> Self::EntityViewMetadata {
-        GlweCiphertextListCreationMetadata(self.output_glwe_size, self.output_polynomial_size)
+        // TODO fix ciphertext modulus
+        GlweCiphertextListCreationMetadata(
+            self.output_glwe_size,
+            self.output_polynomial_size,
+            CiphertextModulus::new_native(),
+        )
     }
 
     fn get_entity_view_pod_size(&self) -> usize {
@@ -332,7 +339,9 @@ impl<C: Container> ContiguousEntityContainer for LwePrivateFunctionalPackingKeys
     }
 }
 
-impl<C: ContainerMut> ContiguousEntityContainerMut for LwePrivateFunctionalPackingKeyswitchKey<C> {
+impl<Scalar: UnsignedInteger, C: ContainerMut<Element = Scalar>> ContiguousEntityContainerMut
+    for LwePrivateFunctionalPackingKeyswitchKey<C>
+{
     type EntityMutView<'this> = GlweCiphertextListMutView<'this, Self::Element>
     where
         Self: 'this;

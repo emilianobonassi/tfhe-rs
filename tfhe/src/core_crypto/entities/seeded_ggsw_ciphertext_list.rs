@@ -9,28 +9,32 @@ use crate::core_crypto::entities::*;
 /// A contiguous list containing
 /// [`seeded GGSW ciphertexts`](`crate::core_crypto::entities::SeededGgswCiphertext`).
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct SeededGgswCiphertextList<C: Container> {
+pub struct SeededGgswCiphertextList<C: Container>
+where
+    C::Element: UnsignedInteger,
+{
     data: C,
     glwe_size: GlweSize,
     polynomial_size: PolynomialSize,
     decomp_base_log: DecompositionBaseLog,
     decomp_level_count: DecompositionLevelCount,
     compression_seed: CompressionSeed,
+    ciphertext_modulus: CiphertextModulus<C::Element>,
 }
 
-impl<T, C: Container<Element = T>> AsRef<[T]> for SeededGgswCiphertextList<C> {
+impl<T: UnsignedInteger, C: Container<Element = T>> AsRef<[T]> for SeededGgswCiphertextList<C> {
     fn as_ref(&self) -> &[T] {
         self.data.as_ref()
     }
 }
 
-impl<T, C: ContainerMut<Element = T>> AsMut<[T]> for SeededGgswCiphertextList<C> {
+impl<T: UnsignedInteger, C: ContainerMut<Element = T>> AsMut<[T]> for SeededGgswCiphertextList<C> {
     fn as_mut(&mut self) -> &mut [T] {
         self.data.as_mut()
     }
 }
 
-impl<Scalar, C: Container<Element = Scalar>> SeededGgswCiphertextList<C> {
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> SeededGgswCiphertextList<C> {
     /// Create a [`SeededGgswCiphertextList`] from an existing container.
     ///
     /// # Note
@@ -114,6 +118,7 @@ impl<Scalar, C: Container<Element = Scalar>> SeededGgswCiphertextList<C> {
         decomp_base_log: DecompositionBaseLog,
         decomp_level_count: DecompositionLevelCount,
         compression_seed: CompressionSeed,
+        ciphertext_modulus: CiphertextModulus<C::Element>,
     ) -> SeededGgswCiphertextList<C> {
         assert!(
             container.container_len() % (decomp_level_count.0 * glwe_size.0 * polynomial_size.0)
@@ -133,6 +138,7 @@ impl<Scalar, C: Container<Element = Scalar>> SeededGgswCiphertextList<C> {
             decomp_base_log,
             decomp_level_count,
             compression_seed,
+            ciphertext_modulus,
         }
     }
 
@@ -171,6 +177,13 @@ impl<Scalar, C: Container<Element = Scalar>> SeededGgswCiphertextList<C> {
         self.compression_seed
     }
 
+    /// Return the [`CiphertextModulus`] of the [`SeededGgswCiphertextList`].
+    ///
+    /// See [`SeededGgswCiphertextList::from_container`] for usage.
+    pub fn ciphertext_modulus(&self) -> CiphertextModulus<C::Element> {
+        self.ciphertext_modulus
+    }
+
     /// Return the [`GgswCiphertextCount`] of the [`SeededGgswCiphertextList`].
     ///
     /// See [`SeededGgswCiphertextList::from_container`] for usage.
@@ -207,6 +220,7 @@ impl<Scalar, C: Container<Element = Scalar>> SeededGgswCiphertextList<C> {
             self.decomposition_base_log(),
             self.decomposition_level_count(),
             self.ggsw_ciphertext_count(),
+            self.ciphertext_modulus(),
         );
         decompress_seeded_ggsw_ciphertext_list::<_, _, _, ActivatedRandomGenerator>(
             &mut decompressed_list,
@@ -224,7 +238,7 @@ pub type SeededGgswCiphertextListView<'data, Scalar> = SeededGgswCiphertextList<
 pub type SeededGgswCiphertextListMutView<'data, Scalar> =
     SeededGgswCiphertextList<&'data mut [Scalar]>;
 
-impl<Scalar: Copy> SeededGgswCiphertextListOwned<Scalar> {
+impl<Scalar: UnsignedInteger> SeededGgswCiphertextListOwned<Scalar> {
     /// Allocate memory and create a new owned [`SeededGgswCiphertextList`].
     ///
     /// # Note
@@ -236,6 +250,7 @@ impl<Scalar: Copy> SeededGgswCiphertextListOwned<Scalar> {
     /// on the individual ciphertexts in the list.
     ///
     /// See [`SeededGgswCiphertextList::from_container`] for usage.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         fill_with: Scalar,
         glwe_size: GlweSize,
@@ -244,6 +259,7 @@ impl<Scalar: Copy> SeededGgswCiphertextListOwned<Scalar> {
         decomp_level_count: DecompositionLevelCount,
         ciphertext_count: GgswCiphertextCount,
         compression_seed: CompressionSeed,
+        ciphertext_modulus: CiphertextModulus<Scalar>,
     ) -> SeededGgswCiphertextListOwned<Scalar> {
         SeededGgswCiphertextList::from_container(
             vec![
@@ -256,14 +272,17 @@ impl<Scalar: Copy> SeededGgswCiphertextListOwned<Scalar> {
             decomp_base_log,
             decomp_level_count,
             compression_seed,
+            ciphertext_modulus,
         )
     }
 }
 
-impl<C: Container> ContiguousEntityContainer for SeededGgswCiphertextList<C> {
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> ContiguousEntityContainer
+    for SeededGgswCiphertextList<C>
+{
     type Element = C::Element;
 
-    type EntityViewMetadata = SeededGgswCiphertextCreationMetadata;
+    type EntityViewMetadata = SeededGgswCiphertextCreationMetadata<Self::Element>;
 
     type EntityView<'this> = SeededGgswCiphertextView<'this, Self::Element>
     where
@@ -281,6 +300,7 @@ impl<C: Container> ContiguousEntityContainer for SeededGgswCiphertextList<C> {
             self.polynomial_size,
             self.decomp_base_log,
             self.compression_seed,
+            self.ciphertext_modulus,
         )
     }
 
@@ -302,7 +322,9 @@ impl<C: Container> ContiguousEntityContainer for SeededGgswCiphertextList<C> {
     }
 }
 
-impl<C: ContainerMut> ContiguousEntityContainerMut for SeededGgswCiphertextList<C> {
+impl<Scalar: UnsignedInteger, C: ContainerMut<Element = Scalar>> ContiguousEntityContainerMut
+    for SeededGgswCiphertextList<C>
+{
     type EntityMutView<'this> = SeededGgswCiphertextMutView<'this, Self::Element>
     where
         Self: 'this;

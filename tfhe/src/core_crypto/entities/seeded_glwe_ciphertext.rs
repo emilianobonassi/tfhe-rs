@@ -8,25 +8,29 @@ use crate::core_crypto::entities::*;
 
 /// A [`seeded GLWE ciphertext`](`SeededGlweCiphertext`).
 #[derive(Clone, Debug, PartialEq)]
-pub struct SeededGlweCiphertext<C: Container> {
+pub struct SeededGlweCiphertext<C: Container>
+where
+    C::Element: UnsignedInteger,
+{
     data: C,
     glwe_size: GlweSize,
     compression_seed: CompressionSeed,
+    ciphertext_modulus: CiphertextModulus<C::Element>,
 }
 
-impl<T, C: Container<Element = T>> AsRef<[T]> for SeededGlweCiphertext<C> {
+impl<T: UnsignedInteger, C: Container<Element = T>> AsRef<[T]> for SeededGlweCiphertext<C> {
     fn as_ref(&self) -> &[T] {
         self.data.as_ref()
     }
 }
 
-impl<T, C: ContainerMut<Element = T>> AsMut<[T]> for SeededGlweCiphertext<C> {
+impl<T: UnsignedInteger, C: ContainerMut<Element = T>> AsMut<[T]> for SeededGlweCiphertext<C> {
     fn as_mut(&mut self) -> &mut [T] {
         self.data.as_mut()
     }
 }
 
-impl<Scalar, C: Container<Element = Scalar>> SeededGlweCiphertext<C> {
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> SeededGlweCiphertext<C> {
     /// Create a [`SeededGlweCiphertext`] from an existing container.
     ///
     /// # Note
@@ -95,6 +99,7 @@ impl<Scalar, C: Container<Element = Scalar>> SeededGlweCiphertext<C> {
         container: C,
         glwe_size: GlweSize,
         compression_seed: CompressionSeed,
+        ciphertext_modulus: CiphertextModulus<C::Element>,
     ) -> SeededGlweCiphertext<C> {
         assert!(
             container.container_len() > 0,
@@ -104,6 +109,7 @@ impl<Scalar, C: Container<Element = Scalar>> SeededGlweCiphertext<C> {
             data: container,
             glwe_size,
             compression_seed,
+            ciphertext_modulus,
         }
     }
 
@@ -128,11 +134,18 @@ impl<Scalar, C: Container<Element = Scalar>> SeededGlweCiphertext<C> {
         self.compression_seed
     }
 
+    /// Return the [`CiphertextModulus`] of the [`SeededGlweCiphertext`].
+    ///
+    /// See [`SeededGlweCiphertext::from_container`] for usage.
+    pub fn ciphertext_modulus(&self) -> CiphertextModulus<C::Element> {
+        self.ciphertext_modulus
+    }
+
     /// Return an immutable view to the [`GlweBody`] of a [`SeededGlweCiphertext`].
     ///
     /// See [`SeededGlweCiphertext::from_container`] for usage.
     pub fn get_body(&self) -> GlweBody<&[Scalar]> {
-        GlweBody::from_container(self.as_ref())
+        GlweBody::from_container(self.as_ref(), self.ciphertext_modulus())
     }
 
     /// Consume the entity and return its underlying container.
@@ -150,8 +163,12 @@ impl<Scalar, C: Container<Element = Scalar>> SeededGlweCiphertext<C> {
     where
         Scalar: UnsignedTorus,
     {
-        let mut decompressed_ct =
-            GlweCiphertext::new(Scalar::ZERO, self.glwe_size(), self.polynomial_size());
+        let mut decompressed_ct = GlweCiphertext::new(
+            Scalar::ZERO,
+            self.glwe_size(),
+            self.polynomial_size(),
+            self.ciphertext_modulus(),
+        );
         decompress_seeded_glwe_ciphertext::<_, _, _, ActivatedRandomGenerator>(
             &mut decompressed_ct,
             &self,
@@ -166,16 +183,18 @@ impl<Scalar, C: Container<Element = Scalar>> SeededGlweCiphertext<C> {
             data: self.data.as_ref(),
             glwe_size: self.glwe_size,
             compression_seed: self.compression_seed,
+            ciphertext_modulus: self.ciphertext_modulus,
         }
     }
 }
 
-impl<Scalar, C: ContainerMut<Element = Scalar>> SeededGlweCiphertext<C> {
+impl<Scalar: UnsignedInteger, C: ContainerMut<Element = Scalar>> SeededGlweCiphertext<C> {
     /// Mutable variant of [`SeededGlweCiphertext::get_body`].
     ///
     /// See [`SeededGlweCiphertext::from_container`] for usage.
     pub fn get_mut_body(&mut self) -> GlweBody<&mut [Scalar]> {
-        GlweBody::from_container(self.as_mut())
+        let ciphertext_modulus = self.ciphertext_modulus();
+        GlweBody::from_container(self.as_mut(), ciphertext_modulus)
     }
 
     /// Mutable variant of [`SeededGlweCiphertext::as_view`].
@@ -184,6 +203,7 @@ impl<Scalar, C: ContainerMut<Element = Scalar>> SeededGlweCiphertext<C> {
             data: self.data.as_mut(),
             glwe_size: self.glwe_size,
             compression_seed: self.compression_seed,
+            ciphertext_modulus: self.ciphertext_modulus,
         }
     }
 }
@@ -195,7 +215,7 @@ pub type SeededGlweCiphertextView<'data, Scalar> = SeededGlweCiphertext<&'data [
 /// A [`SeededGlweCiphertext`] mutably borrowing memory for its own storage.
 pub type SeededGlweCiphertextMutView<'data, Scalar> = SeededGlweCiphertext<&'data mut [Scalar]>;
 
-impl<Scalar: Copy> SeededGlweCiphertextOwned<Scalar> {
+impl<Scalar: UnsignedInteger> SeededGlweCiphertextOwned<Scalar> {
     /// Allocate memory and create a new owned [`SeededGlweCiphertext`].
     ///
     /// # Note
@@ -212,25 +232,34 @@ impl<Scalar: Copy> SeededGlweCiphertextOwned<Scalar> {
         glwe_size: GlweSize,
         polynomial_size: PolynomialSize,
         compression_seed: CompressionSeed,
+        ciphertext_modulus: CiphertextModulus<Scalar>,
     ) -> SeededGlweCiphertextOwned<Scalar> {
         SeededGlweCiphertextOwned::from_container(
             vec![fill_with; polynomial_size.0],
             glwe_size,
             compression_seed,
+            ciphertext_modulus,
         )
     }
 }
 
 /// Metadata used in the [`CreateFrom`] implementation to create [`SeededGlweCiphertext`] entities.
 #[derive(Clone, Copy)]
-pub struct SeededGlweCiphertextCreationMetadata(pub GlweSize, pub CompressionSeed);
+pub struct SeededGlweCiphertextCreationMetadata<Scalar: UnsignedInteger>(
+    pub GlweSize,
+    pub CompressionSeed,
+    pub CiphertextModulus<Scalar>,
+);
 
-impl<C: Container> CreateFrom<C> for SeededGlweCiphertext<C> {
-    type Metadata = SeededGlweCiphertextCreationMetadata;
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> CreateFrom<C>
+    for SeededGlweCiphertext<C>
+{
+    type Metadata = SeededGlweCiphertextCreationMetadata<Scalar>;
 
     #[inline]
     fn create_from(from: C, meta: Self::Metadata) -> SeededGlweCiphertext<C> {
-        let SeededGlweCiphertextCreationMetadata(glwe_size, compression_seed) = meta;
-        SeededGlweCiphertext::from_container(from, glwe_size, compression_seed)
+        let SeededGlweCiphertextCreationMetadata(glwe_size, compression_seed, ciphertext_modulus) =
+            meta;
+        SeededGlweCiphertext::from_container(from, glwe_size, compression_seed, ciphertext_modulus)
     }
 }

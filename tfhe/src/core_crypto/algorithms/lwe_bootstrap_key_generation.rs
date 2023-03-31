@@ -144,6 +144,7 @@ pub fn allocate_and_generate_new_lwe_bootstrap_key<Scalar, InputKeyCont, OutputK
     decomp_base_log: DecompositionBaseLog,
     decomp_level_count: DecompositionLevelCount,
     noise_parameters: impl DispersionParameter,
+    ciphertext_modulus: CiphertextModulus<Scalar>,
     generator: &mut EncryptionRandomGenerator<Gen>,
 ) -> LweBootstrapKeyOwned<Scalar>
 where
@@ -159,6 +160,7 @@ where
         decomp_base_log,
         decomp_level_count,
         input_lwe_secret_key.lwe_dimension(),
+        ciphertext_modulus,
     );
 
     generate_lwe_bootstrap_key(
@@ -299,6 +301,7 @@ pub fn par_allocate_and_generate_new_lwe_bootstrap_key<Scalar, InputKeyCont, Out
     decomp_base_log: DecompositionBaseLog,
     decomp_level_count: DecompositionLevelCount,
     noise_parameters: impl DispersionParameter + Sync,
+    ciphertext_modulus: CiphertextModulus<Scalar>,
     generator: &mut EncryptionRandomGenerator<Gen>,
 ) -> LweBootstrapKeyOwned<Scalar>
 where
@@ -314,6 +317,7 @@ where
         decomp_base_log,
         decomp_level_count,
         input_lwe_secret_key.lwe_dimension(),
+        ciphertext_modulus,
     );
 
     par_generate_lwe_bootstrap_key(
@@ -422,6 +426,7 @@ pub fn allocate_and_generate_new_seeded_lwe_bootstrap_key<
     decomp_base_log: DecompositionBaseLog,
     decomp_level_count: DecompositionLevelCount,
     noise_parameters: impl DispersionParameter,
+    ciphertext_modulus: CiphertextModulus<Scalar>,
     noise_seeder: &mut NoiseSeeder,
 ) -> SeededLweBootstrapKeyOwned<Scalar>
 where
@@ -439,6 +444,7 @@ where
         decomp_level_count,
         input_lwe_secret_key.lwe_dimension(),
         noise_seeder.seed().into(),
+        ciphertext_modulus,
     );
 
     generate_seeded_lwe_bootstrap_key(
@@ -540,6 +546,7 @@ pub fn par_allocate_and_generate_new_seeded_lwe_bootstrap_key<
     decomp_base_log: DecompositionBaseLog,
     decomp_level_count: DecompositionLevelCount,
     noise_parameters: impl DispersionParameter + Sync,
+    ciphertext_modulus: CiphertextModulus<Scalar>,
     noise_seeder: &mut NoiseSeeder,
 ) -> SeededLweBootstrapKeyOwned<Scalar>
 where
@@ -557,6 +564,7 @@ where
         decomp_level_count,
         input_lwe_secret_key.lwe_dimension(),
         noise_seeder.seed().into(),
+        ciphertext_modulus,
     );
 
     par_generate_seeded_lwe_bootstrap_key(
@@ -578,7 +586,8 @@ mod parallel_test {
     use crate::core_crypto::commons::math::random::{ActivatedRandomGenerator, Seed};
     use crate::core_crypto::commons::math::torus::UnsignedTorus;
     use crate::core_crypto::commons::parameters::{
-        DecompositionBaseLog, DecompositionLevelCount, GlweDimension, LweDimension, PolynomialSize,
+        CiphertextModulus, DecompositionBaseLog, DecompositionLevelCount, GlweDimension,
+        LweDimension, PolynomialSize,
     };
     use crate::core_crypto::commons::test_tools::new_secret_random_generator;
     use crate::core_crypto::entities::*;
@@ -602,6 +611,8 @@ mod parallel_test {
             let deterministic_seeder_seed =
                 Seed(crate::core_crypto::commons::test_tools::any_usize() as u128);
 
+            let ciphertext_modulus = CiphertextModulus::new_native();
+
             let mut secret_generator = new_secret_random_generator();
             let lwe_sk =
                 allocate_and_generate_new_binary_lwe_secret_key(lwe_dim, &mut secret_generator);
@@ -618,6 +629,7 @@ mod parallel_test {
                 base_log,
                 level,
                 lwe_dim,
+                ciphertext_modulus,
             );
 
             let mut encryption_generator =
@@ -643,6 +655,7 @@ mod parallel_test {
                 base_log,
                 level,
                 lwe_dim,
+                ciphertext_modulus,
             );
 
             let mut encryption_generator =
@@ -671,6 +684,7 @@ mod parallel_test {
                 level,
                 lwe_dim,
                 mask_seed.into(),
+                ciphertext_modulus,
             );
 
             generate_seeded_lwe_bootstrap_key(
@@ -691,6 +705,7 @@ mod parallel_test {
                 level,
                 lwe_dim,
                 mask_seed.into(),
+                ciphertext_modulus,
             );
 
             par_generate_seeded_lwe_bootstrap_key(

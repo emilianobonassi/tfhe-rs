@@ -6,11 +6,15 @@ use crate::core_crypto::entities::*;
 
 /// A convenience structure to easily manipulate the body of a [`GlweCiphertext`].
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct GlweBody<C: Container> {
+pub struct GlweBody<C: Container>
+where
+    C::Element: UnsignedInteger,
+{
     data: C,
+    ciphertext_modulus: CiphertextModulus<C::Element>,
 }
 
-impl<C: Container> GlweBody<C> {
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> GlweBody<C> {
     /// Create a [`GlweBody`] from an existing container.
     ///
     /// # Note
@@ -29,12 +33,18 @@ impl<C: Container> GlweBody<C> {
     ///
     /// assert_eq!(glwe_body.polynomial_size(), polynomial_size);
     /// ```
-    pub fn from_container(container: C) -> GlweBody<C> {
+    pub fn from_container(
+        container: C,
+        ciphertext_modulus: CiphertextModulus<C::Element>,
+    ) -> GlweBody<C> {
         assert!(
             container.container_len() > 0,
             "Got an empty container to create a GlweBody"
         );
-        GlweBody { data: container }
+        GlweBody {
+            data: container,
+            ciphertext_modulus,
+        }
     }
 
     /// Return the [`PolynomialSize`] of the [`GlweBody`].
@@ -44,36 +54,49 @@ impl<C: Container> GlweBody<C> {
         PolynomialSize(self.data.container_len())
     }
 
+    /// Return the [`CiphertextModulus`] of the [`GlweBody`].
+    ///
+    /// See [`GlweBody::from_container`] for usage.
+    pub fn ciphertext_modulus(&self) -> CiphertextModulus<C::Element> {
+        self.ciphertext_modulus
+    }
+
     /// Interpret the [`GlweBody`] as a [`Polynomial`].
     pub fn as_polynomial(&self) -> PolynomialView<'_, C::Element> {
         PolynomialView::from_container(self.as_ref())
     }
 }
 
-impl<C: ContainerMut> GlweBody<C> {
+impl<Scalar: UnsignedInteger, C: ContainerMut<Element = Scalar>> GlweBody<C> {
     /// Mutable variant of [`GlweBody::as_polynomial`].
     pub fn as_mut_polynomial(&mut self) -> PolynomialMutView<'_, C::Element> {
         PolynomialMutView::from_container(self.as_mut())
     }
 }
 
-impl<C: Container> CreateFrom<C> for GlweBody<C> {
-    type Metadata = ();
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> CreateFrom<C> for GlweBody<C> {
+    type Metadata = GlweCiphertextCreationMetadata<C::Element>;
 
     #[inline]
-    fn create_from(from: C, _meta: Self::Metadata) -> GlweBody<C> {
-        GlweBody::from_container(from)
+    fn create_from(from: C, meta: Self::Metadata) -> GlweBody<C> {
+        let GlweCiphertextCreationMetadata(_, ciphertext_modulus) = meta;
+        GlweBody::from_container(from, ciphertext_modulus)
     }
 }
 
 /// A convenience structure to easily manipulate the mask of a [`GlweCiphertext`].
 #[derive(Clone, Debug)]
-pub struct GlweMask<C: Container> {
+#[allow(dead_code)]
+pub struct GlweMask<C: Container>
+where
+    C::Element: UnsignedInteger,
+{
     data: C,
     polynomial_size: PolynomialSize,
+    ciphertext_modulus: CiphertextModulus<C::Element>,
 }
 
-impl<C: Container> GlweMask<C> {
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> GlweMask<C> {
     /// Create a [`GlweMask`] from an existing container.
     ///
     /// # Note
@@ -97,7 +120,11 @@ impl<C: Container> GlweMask<C> {
     /// assert_eq!(glwe_mask.glwe_dimension(), glwe_dimension);
     /// assert_eq!(glwe_mask.polynomial_size(), polynomial_size);
     /// ```
-    pub fn from_container(container: C, polynomial_size: PolynomialSize) -> Self {
+    pub fn from_container(
+        container: C,
+        polynomial_size: PolynomialSize,
+        ciphertext_modulus: CiphertextModulus<C::Element>,
+    ) -> Self {
         assert!(
             container.container_len() % polynomial_size.0 == 0,
             "The provided container length is not valid. \
@@ -108,6 +135,7 @@ impl<C: Container> GlweMask<C> {
         GlweMask {
             data: container,
             polynomial_size,
+            ciphertext_modulus,
         }
     }
 
@@ -125,13 +153,20 @@ impl<C: Container> GlweMask<C> {
         self.polynomial_size
     }
 
+    /// Return the [`CiphertextModulus`] of the [`GlweMask`].
+    ///
+    /// See [`GlweMask::from_container`] for usage.
+    pub fn ciphertext_modulus(&self) -> CiphertextModulus<C::Element> {
+        self.ciphertext_modulus
+    }
+
     /// Interpret the [`GlweMask`] as a [`PolynomialList`].
     pub fn as_polynomial_list(&self) -> PolynomialListView<'_, C::Element> {
         PolynomialListView::from_container(self.as_ref(), self.polynomial_size)
     }
 }
 
-impl<C: ContainerMut> GlweMask<C> {
+impl<Scalar: UnsignedInteger, C: ContainerMut<Element = Scalar>> GlweMask<C> {
     /// Mutable variant of [`GlweMask::as_polynomial_list`].
     pub fn as_mut_polynomial_list(&mut self) -> PolynomialListMutView<'_, C::Element> {
         let polynomial_size = self.polynomial_size;
@@ -139,25 +174,25 @@ impl<C: ContainerMut> GlweMask<C> {
     }
 }
 
-impl<T, C: Container<Element = T>> AsRef<[T]> for GlweMask<C> {
+impl<T: UnsignedInteger, C: Container<Element = T>> AsRef<[T]> for GlweMask<C> {
     fn as_ref(&self) -> &[T] {
         self.data.as_ref()
     }
 }
 
-impl<T, C: ContainerMut<Element = T>> AsMut<[T]> for GlweMask<C> {
+impl<T: UnsignedInteger, C: ContainerMut<Element = T>> AsMut<[T]> for GlweMask<C> {
     fn as_mut(&mut self) -> &mut [T] {
         self.data.as_mut()
     }
 }
 
-impl<T, C: Container<Element = T>> AsRef<[T]> for GlweBody<C> {
+impl<T: UnsignedInteger, C: Container<Element = T>> AsRef<[T]> for GlweBody<C> {
     fn as_ref(&self) -> &[T] {
         self.data.as_ref()
     }
 }
 
-impl<T, C: ContainerMut<Element = T>> AsMut<[T]> for GlweBody<C> {
+impl<T: UnsignedInteger, C: ContainerMut<Element = T>> AsMut<[T]> for GlweBody<C> {
     fn as_mut(&mut self) -> &mut [T] {
         self.data.as_mut()
     }
@@ -239,24 +274,28 @@ pub fn glwe_ciphertext_mask_size(
 /// **Remark:** Observe that the decryption is followed by a decoding phase that will contain a
 /// rounding.
 #[derive(Clone, Debug, PartialEq)]
-pub struct GlweCiphertext<C: Container> {
+pub struct GlweCiphertext<C: Container>
+where
+    C::Element: UnsignedInteger,
+{
     data: C,
     polynomial_size: PolynomialSize,
+    ciphertext_modulus: CiphertextModulus<C::Element>,
 }
 
-impl<T, C: Container<Element = T>> AsRef<[T]> for GlweCiphertext<C> {
+impl<T: UnsignedInteger, C: Container<Element = T>> AsRef<[T]> for GlweCiphertext<C> {
     fn as_ref(&self) -> &[T] {
         self.data.as_ref()
     }
 }
 
-impl<T, C: ContainerMut<Element = T>> AsMut<[T]> for GlweCiphertext<C> {
+impl<T: UnsignedInteger, C: ContainerMut<Element = T>> AsMut<[T]> for GlweCiphertext<C> {
     fn as_mut(&mut self) -> &mut [T] {
         self.data.as_mut()
     }
 }
 
-impl<Scalar, C: Container<Element = Scalar>> GlweCiphertext<C> {
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> GlweCiphertext<C> {
     /// Create a [`GlweCiphertext`] from an existing container.
     ///
     /// # Note
@@ -315,7 +354,11 @@ impl<Scalar, C: Container<Element = Scalar>> GlweCiphertext<C> {
     /// assert_eq!(glwe.get_mask().polynomial_size(), polynomial_size);
     /// assert_eq!(glwe.get_mut_mask().polynomial_size(), polynomial_size);
     /// ```
-    pub fn from_container(container: C, polynomial_size: PolynomialSize) -> GlweCiphertext<C> {
+    pub fn from_container(
+        container: C,
+        polynomial_size: PolynomialSize,
+        ciphertext_modulus: CiphertextModulus<C::Element>,
+    ) -> GlweCiphertext<C> {
         assert!(
             container.container_len() > 0,
             "Got an empty container to create a GlweCiphertext"
@@ -330,6 +373,7 @@ impl<Scalar, C: Container<Element = Scalar>> GlweCiphertext<C> {
         GlweCiphertext {
             data: container,
             polynomial_size,
+            ciphertext_modulus,
         }
     }
 
@@ -347,6 +391,13 @@ impl<Scalar, C: Container<Element = Scalar>> GlweCiphertext<C> {
         self.polynomial_size
     }
 
+    /// Return the [`CiphertextModulus`] of the [`GlweCiphertext`].
+    ///
+    /// See [`GlweCiphertext::from_container`] for usage.
+    pub fn ciphertext_modulus(&self) -> CiphertextModulus<C::Element> {
+        self.ciphertext_modulus
+    }
+
     /// Return immutable views to the [`GlweMask`] and [`GlweBody`] of a [`GlweCiphertext`].
     pub fn get_mask_and_body(&self) -> (GlweMask<&[Scalar]>, GlweBody<&[Scalar]>) {
         let (mask, body) = self.data.as_ref().split_at(glwe_ciphertext_mask_size(
@@ -355,8 +406,8 @@ impl<Scalar, C: Container<Element = Scalar>> GlweCiphertext<C> {
         ));
 
         (
-            GlweMask::from_container(mask, self.polynomial_size),
-            GlweBody::from_container(body),
+            GlweMask::from_container(mask, self.polynomial_size, self.ciphertext_modulus),
+            GlweBody::from_container(body, self.ciphertext_modulus),
         )
     }
 
@@ -369,7 +420,7 @@ impl<Scalar, C: Container<Element = Scalar>> GlweCiphertext<C> {
             self.polynomial_size,
         )..];
 
-        GlweBody::from_container(body)
+        GlweBody::from_container(body, self.ciphertext_modulus)
     }
 
     /// Return an immutable view to the [`GlweMask`] of a [`GlweCiphertext`].
@@ -382,6 +433,7 @@ impl<Scalar, C: Container<Element = Scalar>> GlweCiphertext<C> {
                 self.polynomial_size,
             )],
             self.polynomial_size,
+            self.ciphertext_modulus,
         )
     }
 
@@ -396,6 +448,7 @@ impl<Scalar, C: Container<Element = Scalar>> GlweCiphertext<C> {
         GlweCiphertext {
             data: self.data.as_ref(),
             polynomial_size: self.polynomial_size,
+            ciphertext_modulus: self.ciphertext_modulus,
         }
     }
 
@@ -407,11 +460,12 @@ impl<Scalar, C: Container<Element = Scalar>> GlweCiphertext<C> {
     }
 }
 
-impl<Scalar, C: ContainerMut<Element = Scalar>> GlweCiphertext<C> {
+impl<Scalar: UnsignedInteger, C: ContainerMut<Element = Scalar>> GlweCiphertext<C> {
     /// Mutable variant of [`GlweCiphertext::get_mask_and_body`].
     pub fn get_mut_mask_and_body(&mut self) -> (GlweMask<&mut [Scalar]>, GlweBody<&mut [Scalar]>) {
         let glwe_dimension = self.glwe_size().to_glwe_dimension();
         let polynomial_size = self.polynomial_size();
+        let ciphertext_modulus = self.ciphertext_modulus();
 
         let (mask, body) = self
             .data
@@ -419,8 +473,8 @@ impl<Scalar, C: ContainerMut<Element = Scalar>> GlweCiphertext<C> {
             .split_at_mut(glwe_ciphertext_mask_size(glwe_dimension, polynomial_size));
 
         (
-            GlweMask::from_container(mask, polynomial_size),
-            GlweBody::from_container(body),
+            GlweMask::from_container(mask, polynomial_size, ciphertext_modulus),
+            GlweBody::from_container(body, ciphertext_modulus),
         )
     }
 
@@ -430,11 +484,12 @@ impl<Scalar, C: ContainerMut<Element = Scalar>> GlweCiphertext<C> {
     pub fn get_mut_body(&mut self) -> GlweBody<&mut [Scalar]> {
         let glwe_dimension = self.glwe_size().to_glwe_dimension();
         let polynomial_size = self.polynomial_size();
+        let ciphertext_modulus = self.ciphertext_modulus();
 
         let body =
             &mut self.data.as_mut()[glwe_ciphertext_mask_size(glwe_dimension, polynomial_size)..];
 
-        GlweBody::from_container(body)
+        GlweBody::from_container(body, ciphertext_modulus)
     }
 
     /// Mutable variant of [`GlweCiphertext::get_mask`].
@@ -443,10 +498,12 @@ impl<Scalar, C: ContainerMut<Element = Scalar>> GlweCiphertext<C> {
     pub fn get_mut_mask(&mut self) -> GlweMask<&mut [Scalar]> {
         let polynomial_size = self.polynomial_size();
         let glwe_dimension = self.glwe_size().to_glwe_dimension();
+        let ciphertext_modulus = self.ciphertext_modulus();
 
         GlweMask::from_container(
             &mut self.as_mut()[0..glwe_ciphertext_mask_size(glwe_dimension, polynomial_size)],
             polynomial_size,
+            ciphertext_modulus,
         )
     }
 
@@ -461,6 +518,7 @@ impl<Scalar, C: ContainerMut<Element = Scalar>> GlweCiphertext<C> {
         GlweCiphertext {
             data: self.data.as_mut(),
             polynomial_size: self.polynomial_size,
+            ciphertext_modulus: self.ciphertext_modulus,
         }
     }
 }
@@ -472,7 +530,7 @@ pub type GlweCiphertextView<'data, Scalar> = GlweCiphertext<&'data [Scalar]>;
 /// A [`GlweCiphertext`] mutably borrowing memory for its own storage.
 pub type GlweCiphertextMutView<'data, Scalar> = GlweCiphertext<&'data mut [Scalar]>;
 
-impl<Scalar: Copy> GlweCiphertextOwned<Scalar> {
+impl<Scalar: UnsignedInteger> GlweCiphertextOwned<Scalar> {
     /// Allocate memory and create a new owned [`GlweCiphertext`].
     ///
     /// # Note
@@ -488,24 +546,29 @@ impl<Scalar: Copy> GlweCiphertextOwned<Scalar> {
         fill_with: Scalar,
         glwe_size: GlweSize,
         polynomial_size: PolynomialSize,
+        ciphertext_modulus: CiphertextModulus<Scalar>,
     ) -> GlweCiphertextOwned<Scalar> {
         GlweCiphertextOwned::from_container(
             vec![fill_with; glwe_ciphertext_size(glwe_size, polynomial_size)],
             polynomial_size,
+            ciphertext_modulus,
         )
     }
 }
 
 /// Metadata used in the [`CreateFrom`] implementation to create [`GlweCiphertext`] entities.
 #[derive(Clone, Copy)]
-pub struct GlweCiphertextCreationMetadata(pub PolynomialSize);
+pub struct GlweCiphertextCreationMetadata<Scalar: UnsignedInteger>(
+    pub PolynomialSize,
+    pub CiphertextModulus<Scalar>,
+);
 
-impl<C: Container> CreateFrom<C> for GlweCiphertext<C> {
-    type Metadata = GlweCiphertextCreationMetadata;
+impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> CreateFrom<C> for GlweCiphertext<C> {
+    type Metadata = GlweCiphertextCreationMetadata<Scalar>;
 
     #[inline]
     fn create_from(from: C, meta: Self::Metadata) -> GlweCiphertext<C> {
-        let GlweCiphertextCreationMetadata(polynomial_size) = meta;
-        GlweCiphertext::from_container(from, polynomial_size)
+        let GlweCiphertextCreationMetadata(polynomial_size, ciphertext_modulus) = meta;
+        GlweCiphertext::from_container(from, polynomial_size, ciphertext_modulus)
     }
 }

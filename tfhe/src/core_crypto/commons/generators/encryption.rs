@@ -489,7 +489,8 @@ mod test {
     use crate::core_crypto::algorithms::*;
     use crate::core_crypto::commons::dispersion::Variance;
     use crate::core_crypto::commons::parameters::{
-        DecompositionBaseLog, DecompositionLevelCount, GlweSize, LweDimension, PolynomialSize,
+        CiphertextModulus, DecompositionBaseLog, DecompositionLevelCount, GlweSize, LweDimension,
+        PolynomialSize,
     };
     use crate::core_crypto::commons::test_tools::{
         new_encryption_random_generator, new_secret_random_generator,
@@ -528,6 +529,7 @@ mod test {
             params.dec_base_log,
             params.dec_level_count,
             Variance(0.),
+            CiphertextModulus::new_native(),
             &mut enc_generator,
         );
     }

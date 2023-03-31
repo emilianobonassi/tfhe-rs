@@ -193,6 +193,7 @@ pub fn encrypt_seeded_glwe_ciphertext_assign_with_existing_generator<
             )
         ],
         output.polynomial_size(),
+        output.ciphertext_modulus(),
     );
     let mut body = output.get_mut_body();
 
@@ -222,6 +223,15 @@ pub fn fill_glwe_mask_and_body_for_encryption<KeyCont, InputCont, BodyCont, Mask
     MaskCont: ContainerMut<Element = Scalar>,
     Gen: ByteRandomGenerator,
 {
+    assert!(
+        output_mask.ciphertext_modulus().is_native_modulus(),
+        "This operation only supports native moduli"
+    );
+    assert!(
+        output_body.ciphertext_modulus().is_native_modulus(),
+        "This operation only supports native moduli"
+    );
+
     generator.fill_slice_with_random_noise(output_body.as_mut(), noise_parameters);
 
     generator.fill_slice_with_random_mask(output_mask.as_mut());
@@ -726,6 +736,7 @@ pub fn trivially_encrypt_glwe_ciphertext<Scalar, InputCont, OutputCont>(
 pub fn allocate_and_trivially_encrypt_new_glwe_ciphertext<Scalar, InputCont>(
     glwe_size: GlweSize,
     encoded: &PlaintextList<InputCont>,
+    ciphertext_modulus: CiphertextModulus<Scalar>,
 ) -> GlweCiphertextOwned<Scalar>
 where
     Scalar: UnsignedTorus,
@@ -733,7 +744,8 @@ where
 {
     let polynomial_size = PolynomialSize(encoded.plaintext_count().0);
 
-    let mut new_ct = GlweCiphertextOwned::new(Scalar::ZERO, glwe_size, polynomial_size);
+    let mut new_ct =
+        GlweCiphertextOwned::new(Scalar::ZERO, glwe_size, polynomial_size, ciphertext_modulus);
 
     let mut body = new_ct.get_mut_body();
     body.as_mut().copy_from_slice(encoded.as_ref());
@@ -786,12 +798,14 @@ pub fn encrypt_seeded_glwe_ciphertext_with_exsiting_generator<
 
     let glwe_dimension = output_glwe_ciphertext.glwe_size().to_glwe_dimension();
     let polynomial_size = output_glwe_ciphertext.polynomial_size();
+    let ciphertext_modulus = output_glwe_ciphertext.ciphertext_modulus();
 
     let mut body = output_glwe_ciphertext.get_mut_body();
 
     let mut tmp_mask = GlweMask::from_container(
         vec![Scalar::ZERO; glwe_ciphertext_mask_size(glwe_dimension, polynomial_size)],
         polynomial_size,
+        ciphertext_modulus,
     );
 
     fill_glwe_mask_and_body_for_encryption(
@@ -953,6 +967,7 @@ pub fn encrypt_seeded_glwe_ciphertext_list_with_existing_generator<
             )
         ],
         output.polynomial_size(),
+        output.ciphertext_modulus(),
     );
 
     // TODO: use forking generators (for later parallel implementation).

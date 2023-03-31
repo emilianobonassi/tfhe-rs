@@ -61,6 +61,7 @@ pub fn test_extract_bits() {
         base_log_bsk,
         level_bsk,
         std,
+        ciphertext_modulus,
         &mut encryption_generator,
     );
 
@@ -222,6 +223,7 @@ fn test_circuit_bootstrapping_binary() {
         base_log_bsk,
         level_bsk,
         std,
+        ciphertext_modulus,
         &mut encryption_generator,
     );
 
@@ -279,6 +281,7 @@ fn test_circuit_bootstrapping_binary() {
             polynomial_size,
             base_log_cbs,
             level_count_cbs,
+            ciphertext_modulus,
         );
 
         let mut mem = GlobalPodBuffer::new(
@@ -394,6 +397,7 @@ pub fn test_cmux_tree() {
     let std = LogStandardDev::from_log_standard_dev(-60.);
     let level = DecompositionLevelCount(3);
     let base_log = DecompositionBaseLog(6);
+    let ciphertext_modulus = CiphertextModulus::new_native();
     // We need (1 << nb_ggsw) > polynomial_size to have an actual CMUX tree and not just a blind
     // rotation
     let nb_ggsw = 10;
@@ -467,6 +471,7 @@ pub fn test_cmux_tree() {
                 polynomial_size,
                 base_log,
                 level,
+                ciphertext_modulus,
             );
             encrypt_constant_ggsw_ciphertext(
                 &glwe_sk,
@@ -483,7 +488,8 @@ pub fn test_cmux_tree() {
                 .fill_with_forward_fourier(ggsw.as_view(), fft, stack);
         }
 
-        let mut result_cmux_tree = GlweCiphertextOwned::new(0_u64, glwe_size, polynomial_size);
+        let mut result_cmux_tree =
+            GlweCiphertext::new(0_u64, glwe_size, polynomial_size, ciphertext_modulus);
         let mut mem = GlobalPodBuffer::new(
             cmux_tree_memory_optimized_scratch::<u64>(glwe_size, polynomial_size, nb_ggsw, fft)
                 .unwrap(),
@@ -567,6 +573,7 @@ pub fn test_extract_bit_circuit_bootstrapping_vertical_packing() {
         base_log_bsk,
         level_bsk,
         std_small,
+        ciphertext_modulus,
         &mut encryption_generator,
     );
 

@@ -9,7 +9,7 @@ use crate::core_crypto::commons::generators::{
 };
 use crate::core_crypto::commons::math::random::{ActivatedRandomGenerator, Seeder};
 use crate::core_crypto::entities::*;
-use crate::core_crypto::prelude::ContainerMut;
+use crate::core_crypto::prelude::{CiphertextModulus, ContainerMut};
 use crate::core_crypto::seeders::new_seeder;
 use crate::shortint::ciphertext::Degree;
 use crate::shortint::server_key::{
@@ -72,6 +72,7 @@ impl Memory {
         let acc = GlweCiphertext::from_container(
             accumulator_elements,
             server_key.bootstrapping_key.polynomial_size(),
+            CiphertextModulus::new_native(),
         );
 
         let accumulator = LookupTableMutView {
@@ -250,10 +251,11 @@ impl ShortintEngine {
     where
         F: Fn(u64) -> u64,
     {
-        let mut acc = GlweCiphertextOwned::<u64>::new(
+        let mut acc = GlweCiphertext::new(
             0,
             server_key.bootstrapping_key.glwe_size(),
             server_key.bootstrapping_key.polynomial_size(),
+            CiphertextModulus::new_native(),
         );
         let max_value = fill_accumulator(&mut acc, server_key, f);
 

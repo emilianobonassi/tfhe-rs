@@ -248,8 +248,11 @@ impl<'a> FourierLweBootstrapKeyView<'a> {
                 // We copy ct_0 to ct_1
                 let (mut ct1, stack) =
                     stack.collect_aligned(CACHELINE_ALIGN, ct0.as_ref().iter().copied());
-                let mut ct1 =
-                    GlweCiphertextMutView::from_container(&mut *ct1, ct0.polynomial_size());
+                let mut ct1 = GlweCiphertextMutView::from_container(
+                    &mut *ct1,
+                    ct0.polynomial_size(),
+                    ct0.ciphertext_modulus(),
+                );
 
                 // We rotate ct_1 by performing ct_1 <- ct_1 * X^{a_hat}
                 for mut poly in ct1.as_mut_polynomial_list().iter_mut() {
@@ -292,6 +295,7 @@ impl<'a> FourierLweBootstrapKeyView<'a> {
         let mut local_accumulator = GlweCiphertextMutView::from_container(
             &mut *local_accumulator_data,
             accumulator.polynomial_size(),
+            accumulator.ciphertext_modulus(),
         );
         self.blind_rotate_assign(local_accumulator.as_mut_view(), lwe_in.as_ref(), fft, stack);
         extract_lwe_sample_from_glwe_ciphertext(

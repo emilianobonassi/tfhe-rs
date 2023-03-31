@@ -52,6 +52,7 @@ impl Memory {
             let mut accumulator = GlweCiphertextMutView::from_container(
                 accumulator_elements,
                 server_key.bootstrapping_key.polynomial_size(),
+                CiphertextModulus::new_native(),
             );
 
             accumulator.get_mut_mask().as_mut().fill(0u32);
@@ -61,6 +62,7 @@ impl Memory {
         let accumulator = GlweCiphertextView::from_container(
             accumulator_elements,
             server_key.bootstrapping_key.polynomial_size(),
+            CiphertextModulus::new_native(),
         );
 
         let lwe =
@@ -155,6 +157,7 @@ impl Bootstrapper {
                 cks.parameters.pbs_base_log,
                 cks.parameters.pbs_level,
                 cks.parameters.glwe_modular_std_dev,
+                CiphertextModulus::new_native(),
                 &mut self.encryption_generator,
             );
 
@@ -215,6 +218,7 @@ impl Bootstrapper {
             cks.parameters.pbs_base_log,
             cks.parameters.pbs_level,
             cks.parameters.glwe_modular_std_dev,
+            CiphertextModulus::new_native(),
             &mut self.seeder,
         );
 
@@ -225,6 +229,7 @@ impl Bootstrapper {
             cks.parameters.pbs_base_log,
             cks.parameters.pbs_level,
             cks.parameters.glwe_modular_std_dev,
+            CiphertextModulus::new_native(),
             &mut self.seeder,
         );
 

@@ -227,6 +227,11 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
     OutputCont: ContainerMut<Element = Scalar>,
     KeyCont: Container<Element = c64> + Sync,
 {
+    assert!(
+        input.ciphertext_modulus().is_native_modulus(),
+        "This operation only supports native moduli"
+    );
+
     assert_eq!(
         input.lwe_size().to_lwe_dimension(),
         multi_bit_bsk.input_lwe_dimension(),
@@ -430,7 +435,12 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
 
         // We initialize ct0 for the successive external products
         let ct0 = accumulator;
-        let mut ct1 = GlweCiphertext::new(Scalar::ZERO, ct0.glwe_size(), ct0.polynomial_size());
+        let mut ct1 = GlweCiphertext::new(
+            Scalar::ZERO,
+            ct0.glwe_size(),
+            ct0.polynomial_size(),
+            ct0.ciphertext_modulus(),
+        );
         let ct1 = &mut ct1;
 
         let mut buffers = ComputationBuffers::new();
@@ -706,6 +716,11 @@ pub fn multi_bit_programmable_bootstrap_lwe_ciphertext<
     AccCont: Container<Element = Scalar>,
     KeyCont: Container<Element = c64> + Sync,
 {
+    assert!(
+        input.ciphertext_modulus().is_native_modulus(),
+        "This operation only supports native moduli"
+    );
+
     assert_eq!(
         input.lwe_size().to_lwe_dimension(),
         multi_bit_bsk.input_lwe_dimension(),
@@ -746,6 +761,7 @@ pub fn multi_bit_programmable_bootstrap_lwe_ciphertext<
         Scalar::ZERO,
         accumulator.glwe_size(),
         accumulator.polynomial_size(),
+        accumulator.ciphertext_modulus(),
     );
     local_accumulator
         .as_mut()
@@ -805,6 +821,7 @@ mod test {
             decomp_level_count,
             input_lwe_dimension,
             grouping_factor,
+            ciphertext_modulus,
         );
 
         par_generate_lwe_multi_bit_bootstrap_key(
@@ -831,6 +848,7 @@ mod test {
             polynomial_size: PolynomialSize,
             glwe_size: GlweSize,
             message_modulus: usize,
+            ciphertext_modulus: CiphertextModulus<u64>,
             delta: u64,
             f: F,
         ) -> GlweCiphertextOwned<u64>
@@ -865,7 +883,11 @@ mod test {
 
             let accumulator_plaintext = PlaintextList::from_container(accumulator_u64);
 
-            allocate_and_trivially_encrypt_new_glwe_ciphertext(glwe_size, &accumulator_plaintext)
+            allocate_and_trivially_encrypt_new_glwe_ciphertext(
+                glwe_size,
+                &accumulator_plaintext,
+                ciphertext_modulus,
+            )
         }
 
         // Our 4 bits message space
@@ -897,6 +919,7 @@ mod test {
                     polynomial_size,
                     glwe_dimension.to_glwe_size(),
                     message_modulus as usize,
+                    ciphertext_modulus,
                     delta,
                     f,
                 );

@@ -834,6 +834,7 @@ mod test {
         let decomp_base_log = DecompositionBaseLog(8);
         let decomp_level_count = DecompositionLevelCount(3);
         let glwe_modular_std_dev = StandardDev(0.00000000000000029403601535432533);
+        let ciphertext_modulus = CiphertextModulus::new_native();
 
         // Create the PRNG
         let mut seeder = new_seeder();
@@ -865,6 +866,7 @@ mod test {
                 polynomial_size,
                 decomp_base_log,
                 decomp_level_count,
+                ciphertext_modulus,
             );
 
             let mut deterministic_seeder =
@@ -890,6 +892,7 @@ mod test {
                 polynomial_size,
                 decomp_base_log,
                 decomp_level_count,
+                ciphertext_modulus,
             );
 
             let mut deterministic_seeder =
@@ -919,6 +922,7 @@ mod test {
                 decomp_base_log,
                 decomp_level_count,
                 compression_seed,
+                ciphertext_modulus,
             );
 
             let mut deterministic_seeder =
@@ -939,6 +943,7 @@ mod test {
                 decomp_base_log,
                 decomp_level_count,
                 compression_seed,
+                ciphertext_modulus,
             );
 
             let mut deterministic_seeder =

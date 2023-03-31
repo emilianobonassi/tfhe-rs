@@ -118,6 +118,9 @@ impl<Scalar: UnsignedInteger, C: Container<Element = Scalar>> LweCiphertextList<
         self.data
     }
 
+    /// Return the [`CiphertextModulus`] of the [`LweCiphertextList`].
+    ///
+    /// See [`LweCiphertextList::from_container`] for usage.
     pub fn ciphertext_modulus(&self) -> CiphertextModulus<C::Element> {
         self.ciphertext_modulus
     }
