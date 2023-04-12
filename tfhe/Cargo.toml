@@ -41,6 +41,7 @@ serde = { version = "1.0", features = ["derive"] }
 rayon = { version = "1.5.0" }
 bincode = { version = "1.3.3", optional = true }
 concrete-fft = { version = "0.2.1", features = ["serde", "fft128"] }
+concrete-ntt = { git = "ssh://git@github.com/zama-ai/concrete-ntt.git", branch = "more-ops" }
 pulp = "0.11"
 aligned-vec = { version = "0.5", features = ["serde"] }
 dyn-stack = { version = "0.9" }
@@ -131,6 +132,11 @@ required-features = ["experimental", "internal-keycache"]
 [[bench]]
 name = "pbs128-bench"
 path = "benches/core_crypto/pbs128_bench.rs"
+harness = false
+
+[[bench]]
+name = "pbs-crt-bench"
+path = "benches/core_crypto/pbs_crt_bench.rs"
 harness = false
 
 [[bench]]
