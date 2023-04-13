@@ -9,18 +9,18 @@ use tfhe::shortint::keycache::NamedParam;
 use tfhe::shortint::parameters::*;
 use tfhe::shortint::Parameters;
 
-const SHORTINT_BENCH_PARAMS: [Parameters; 1] = [
+const SHORTINT_BENCH_PARAMS: [Parameters; 4] = [
     // PARAM_MESSAGE_1_CARRY_0,
-    // PARAM_MESSAGE_1_CARRY_1,
+    PARAM_MESSAGE_1_CARRY_1,
     // PARAM_MESSAGE_2_CARRY_0,
     // PARAM_MESSAGE_2_CARRY_1,
     PARAM_MESSAGE_2_CARRY_2,
     // PARAM_MESSAGE_3_CARRY_0,
     // PARAM_MESSAGE_3_CARRY_2,
-    // PARAM_MESSAGE_3_CARRY_3,
+    PARAM_MESSAGE_3_CARRY_3,
     // PARAM_MESSAGE_4_CARRY_0,
     // PARAM_MESSAGE_4_CARRY_3,
-    // PARAM_MESSAGE_4_CARRY_4,
+    PARAM_MESSAGE_4_CARRY_4,
     // PARAM_MESSAGE_5_CARRY_0,
     // PARAM_MESSAGE_6_CARRY_0,
     // PARAM_MESSAGE_7_CARRY_0,
@@ -95,6 +95,38 @@ fn multi_bit_benchmark_parameters<Scalar: Numeric>(
     if Scalar::BITS == 64 {
         vec![
             (
+                "2_bits_multi_bit_group_2".to_string(),
+                (
+                    CryptoParametersRecord {
+                        lwe_dimension: Some(LweDimension(764)),
+                        lwe_modular_std_dev: Some(StandardDev(0.0000038003596741624174)),
+                        pbs_base_log: Some(DecompositionBaseLog(18)),
+                        pbs_level: Some(DecompositionLevelCount(1)),
+                        glwe_dimension: Some(GlweDimension(3)),
+                        glwe_modular_std_dev: Some(StandardDev(0.0000000000000003152931493498455)),
+                        polynomial_size: Some(PolynomialSize(1 << 9)),
+                        ..Default::default()
+                    },
+                    LweBskGroupingFactor(2),
+                ),
+            ),
+            (
+                "2_bits_multi_bit_group_3".to_string(),
+                (
+                    CryptoParametersRecord {
+                        lwe_dimension: Some(LweDimension(765)),
+                        lwe_modular_std_dev: Some(StandardDev(0.000003871078133364534)),
+                        pbs_base_log: Some(DecompositionBaseLog(18)),
+                        pbs_level: Some(DecompositionLevelCount(1)),
+                        glwe_dimension: Some(GlweDimension(3)),
+                        glwe_modular_std_dev: Some(StandardDev(0.0000000000000003152931493498455)),
+                        polynomial_size: Some(PolynomialSize(1 << 9)),
+                        ..Default::default()
+                    },
+                    LweBskGroupingFactor(3),
+                ),
+            ),
+            (
                 "4_bits_multi_bit_group_2".to_string(),
                 (
                     CryptoParametersRecord {
@@ -104,7 +136,7 @@ fn multi_bit_benchmark_parameters<Scalar: Numeric>(
                         pbs_level: Some(DecompositionLevelCount(1)),
                         glwe_dimension: Some(GlweDimension(1)),
                         glwe_modular_std_dev: Some(StandardDev(0.0000000000000003152931493498455)),
-                        polynomial_size: Some(PolynomialSize(2048)),
+                        polynomial_size: Some(PolynomialSize(1 << 11)),
                         ..Default::default()
                     },
                     LweBskGroupingFactor(2),
@@ -120,7 +152,71 @@ fn multi_bit_benchmark_parameters<Scalar: Numeric>(
                         pbs_level: Some(DecompositionLevelCount(1)),
                         glwe_dimension: Some(GlweDimension(1)),
                         glwe_modular_std_dev: Some(StandardDev(0.0000000000000003152931493498455)),
-                        polynomial_size: Some(PolynomialSize(2048)),
+                        polynomial_size: Some(PolynomialSize(1 << 11)),
+                        ..Default::default()
+                    },
+                    LweBskGroupingFactor(3),
+                ),
+            ),
+            (
+                "6_bits_multi_bit_group_2".to_string(),
+                (
+                    CryptoParametersRecord {
+                        lwe_dimension: Some(LweDimension(922)),
+                        lwe_modular_std_dev: Some(StandardDev(0.000003871078133364534)),
+                        pbs_base_log: Some(DecompositionBaseLog(14)),
+                        pbs_level: Some(DecompositionLevelCount(2)),
+                        glwe_dimension: Some(GlweDimension(1)),
+                        glwe_modular_std_dev: Some(StandardDev(0.0000000000000003152931493498455)),
+                        polynomial_size: Some(PolynomialSize(1 << 13)),
+                        ..Default::default()
+                    },
+                    LweBskGroupingFactor(2),
+                ),
+            ),
+            (
+                "6_bits_multi_bit_group_3".to_string(),
+                (
+                    CryptoParametersRecord {
+                        lwe_dimension: Some(LweDimension(972)),
+                        lwe_modular_std_dev: Some(StandardDev(0.0000038003596741624174)),
+                        pbs_base_log: Some(DecompositionBaseLog(14)),
+                        pbs_level: Some(DecompositionLevelCount(2)),
+                        glwe_dimension: Some(GlweDimension(1)),
+                        glwe_modular_std_dev: Some(StandardDev(0.0000000000000003152931493498455)),
+                        polynomial_size: Some(PolynomialSize(1 << 13)),
+                        ..Default::default()
+                    },
+                    LweBskGroupingFactor(3),
+                ),
+            ),
+            (
+                "8_bits_multi_bit_group_2".to_string(),
+                (
+                    CryptoParametersRecord {
+                        lwe_dimension: Some(LweDimension(1052)),
+                        lwe_modular_std_dev: Some(StandardDev(0.000003871078133364534)),
+                        pbs_base_log: Some(DecompositionBaseLog(14)),
+                        pbs_level: Some(DecompositionLevelCount(2)),
+                        glwe_dimension: Some(GlweDimension(1)),
+                        glwe_modular_std_dev: Some(StandardDev(0.0000000000000003152931493498455)),
+                        polynomial_size: Some(PolynomialSize(1 << 15)),
+                        ..Default::default()
+                    },
+                    LweBskGroupingFactor(2),
+                ),
+            ),
+            (
+                "8_bits_multi_bit_group_3".to_string(),
+                (
+                    CryptoParametersRecord {
+                        lwe_dimension: Some(LweDimension(1098)),
+                        lwe_modular_std_dev: Some(StandardDev(0.0000038003596741624174)),
+                        pbs_base_log: Some(DecompositionBaseLog(14)),
+                        pbs_level: Some(DecompositionLevelCount(2)),
+                        glwe_dimension: Some(GlweDimension(1)),
+                        glwe_modular_std_dev: Some(StandardDev(0.0000000000000003152931493498455)),
+                        polynomial_size: Some(PolynomialSize(1 << 15)),
                         ..Default::default()
                     },
                     LweBskGroupingFactor(3),
