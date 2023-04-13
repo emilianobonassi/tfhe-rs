@@ -9,22 +9,22 @@ use tfhe::shortint::keycache::NamedParam;
 use tfhe::shortint::parameters::*;
 use tfhe::shortint::Parameters;
 
-const SHORTINT_BENCH_PARAMS: [Parameters; 15] = [
-    PARAM_MESSAGE_1_CARRY_0,
-    PARAM_MESSAGE_1_CARRY_1,
-    PARAM_MESSAGE_2_CARRY_0,
-    PARAM_MESSAGE_2_CARRY_1,
+const SHORTINT_BENCH_PARAMS: [Parameters; 1] = [
+    // PARAM_MESSAGE_1_CARRY_0,
+    // PARAM_MESSAGE_1_CARRY_1,
+    // PARAM_MESSAGE_2_CARRY_0,
+    // PARAM_MESSAGE_2_CARRY_1,
     PARAM_MESSAGE_2_CARRY_2,
-    PARAM_MESSAGE_3_CARRY_0,
-    PARAM_MESSAGE_3_CARRY_2,
-    PARAM_MESSAGE_3_CARRY_3,
-    PARAM_MESSAGE_4_CARRY_0,
-    PARAM_MESSAGE_4_CARRY_3,
-    PARAM_MESSAGE_4_CARRY_4,
-    PARAM_MESSAGE_5_CARRY_0,
-    PARAM_MESSAGE_6_CARRY_0,
-    PARAM_MESSAGE_7_CARRY_0,
-    PARAM_MESSAGE_8_CARRY_0,
+    // PARAM_MESSAGE_3_CARRY_0,
+    // PARAM_MESSAGE_3_CARRY_2,
+    // PARAM_MESSAGE_3_CARRY_3,
+    // PARAM_MESSAGE_4_CARRY_0,
+    // PARAM_MESSAGE_4_CARRY_3,
+    // PARAM_MESSAGE_4_CARRY_4,
+    // PARAM_MESSAGE_5_CARRY_0,
+    // PARAM_MESSAGE_6_CARRY_0,
+    // PARAM_MESSAGE_7_CARRY_0,
+    // PARAM_MESSAGE_8_CARRY_0,
 ];
 
 const BOOLEAN_BENCH_PARAMS: [(&str, BooleanParameters); 2] = [
@@ -35,13 +35,13 @@ const BOOLEAN_BENCH_PARAMS: [(&str, BooleanParameters); 2] = [
 criterion_group!(
     name = pbs_group;
     config = Criterion::default().sample_size(2000);
-    targets = mem_optimized_pbs::<u64>, mem_optimized_pbs::<u32>
+    targets = mem_optimized_pbs::<u64>//, mem_optimized_pbs::<u32>
 );
 
 criterion_group!(
     name = multi_bit_pbs_group;
     config = Criterion::default().sample_size(2000);
-    targets = multi_bit_pbs::<u64>, multi_bit_pbs::<u32>
+    targets = multi_bit_pbs::<u64>//, multi_bit_pbs::<u32>
 );
 
 criterion_main!(pbs_group, multi_bit_pbs_group);
@@ -52,6 +52,34 @@ fn benchmark_parameters<Scalar: Numeric>() -> Vec<(String, CryptoParametersRecor
             .iter()
             .map(|params| (params.name(), params.to_owned().into()))
             .collect()
+        // vec![
+        //     (
+        //         "4_bits_multi_bit_group_2".to_string(),
+        //         CryptoParametersRecord {
+        //             lwe_dimension: Some(LweDimension(818)),
+        //             lwe_modular_std_dev: Some(StandardDev(0.000003871078133364534)),
+        //             pbs_base_log: Some(DecompositionBaseLog(22)),
+        //             pbs_level: Some(DecompositionLevelCount(1)),
+        //             glwe_dimension: Some(GlweDimension(1)),
+        //             glwe_modular_std_dev: Some(StandardDev(0.0000000000000003152931493498455)),
+        //             polynomial_size: Some(PolynomialSize(2048)),
+        //             ..Default::default()
+        //         },
+        //     ),
+        //     (
+        //         "4_bits_multi_bit_group_3".to_string(),
+        //         CryptoParametersRecord {
+        //             lwe_dimension: Some(LweDimension(888)),
+        //             lwe_modular_std_dev: Some(StandardDev(0.0000038003596741624174)),
+        //             pbs_base_log: Some(DecompositionBaseLog(21)),
+        //             pbs_level: Some(DecompositionLevelCount(1)),
+        //             glwe_dimension: Some(GlweDimension(1)),
+        //             glwe_modular_std_dev: Some(StandardDev(0.0000000000000003152931493498455)),
+        //             polynomial_size: Some(PolynomialSize(2048)),
+        //             ..Default::default()
+        //         },
+        //     ),
+        // ]
     } else if Scalar::BITS == 32 {
         BOOLEAN_BENCH_PARAMS
             .iter()
@@ -70,13 +98,13 @@ fn multi_bit_benchmark_parameters<Scalar: Numeric>(
                 "4_bits_multi_bit_group_2".to_string(),
                 (
                     CryptoParametersRecord {
-                        lwe_dimension: Some(LweDimension(788)),
+                        lwe_dimension: Some(LweDimension(818)),
                         lwe_modular_std_dev: Some(StandardDev(0.000003871078133364534)),
                         pbs_base_log: Some(DecompositionBaseLog(22)),
                         pbs_level: Some(DecompositionLevelCount(1)),
-                        glwe_dimension: Some(GlweDimension(2)),
+                        glwe_dimension: Some(GlweDimension(1)),
                         glwe_modular_std_dev: Some(StandardDev(0.0000000000000003152931493498455)),
-                        polynomial_size: Some(PolynomialSize(1024)),
+                        polynomial_size: Some(PolynomialSize(2048)),
                         ..Default::default()
                     },
                     LweBskGroupingFactor(2),
@@ -86,13 +114,13 @@ fn multi_bit_benchmark_parameters<Scalar: Numeric>(
                 "4_bits_multi_bit_group_3".to_string(),
                 (
                     CryptoParametersRecord {
-                        lwe_dimension: Some(LweDimension(789)),
+                        lwe_dimension: Some(LweDimension(888)),
                         lwe_modular_std_dev: Some(StandardDev(0.0000038003596741624174)),
-                        pbs_base_log: Some(DecompositionBaseLog(22)),
+                        pbs_base_log: Some(DecompositionBaseLog(21)),
                         pbs_level: Some(DecompositionLevelCount(1)),
-                        glwe_dimension: Some(GlweDimension(2)),
+                        glwe_dimension: Some(GlweDimension(1)),
                         glwe_modular_std_dev: Some(StandardDev(0.0000000000000003152931493498455)),
-                        polynomial_size: Some(PolynomialSize(1024)),
+                        polynomial_size: Some(PolynomialSize(2048)),
                         ..Default::default()
                     },
                     LweBskGroupingFactor(3),
@@ -272,7 +300,7 @@ fn multi_bit_pbs<Scalar: UnsignedTorus + CastInto<usize> + CastFrom<usize> + Syn
                     &accumulator.as_view(),
                     &multi_bit_bsk,
                     // Leave one thread to the OS and one for the ext product loop
-                    ThreadCount(2.max(num_cpus::get_physical() - 2)),
+                    ThreadCount(num_cpus::get()),
                 );
                 black_box(&mut out_pbs_ct);
             })

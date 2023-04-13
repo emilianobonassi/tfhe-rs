@@ -470,9 +470,6 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
 
         for _ in 0..multi_bit_bsk.multi_bit_input_lwe_dimension().0 {
             src_idx ^= 1;
-            let idx = rx.recv().unwrap();
-            let (ready_lock, condvar, multi_bit_fourier_ggsw) =
-                &fourier_multi_bit_ggsw_buffers[idx];
 
             let (src_ct, mut dst_ct) = if src_idx == 0 {
                 (ct0.as_view(), ct1.as_mut_view())
@@ -481,6 +478,10 @@ pub fn multi_bit_blind_rotate_assign<Scalar, InputCont, OutputCont, KeyCont>(
             };
 
             dst_ct.as_mut().fill(Scalar::ZERO);
+
+            let idx = rx.recv().unwrap();
+            let (ready_lock, condvar, multi_bit_fourier_ggsw) =
+                &fourier_multi_bit_ggsw_buffers[idx];
 
             let mut ready = ready_lock.lock().unwrap();
             assert!(*ready);
