@@ -303,8 +303,8 @@ bench_boolean: install_rs_check_toolchain
 	--features=$(TARGET_ARCH_FEATURE),boolean,internal-keycache,$(AVX512_FEATURE) -p tfhe
 
 .PHONY: bench_pbs # Run benchmarks for PBS
-bench_pbs: install_rs_build_toolchain
-	RUSTFLAGS="$(RUSTFLAGS)" cargo $(CARGO_RS_BUILD_TOOLCHAIN) bench \
+bench_pbs: install_rs_build_toolchain install_rs_check_toolchain
+	RUSTFLAGS="$(RUSTFLAGS)" cargo $(CARGO_RS_CHECK_TOOLCHAIN) bench \
 	--bench pbs-bench \
 	--features=$(TARGET_ARCH_FEATURE),boolean,shortint,internal-keycache,$(AVX512_FEATURE) -p tfhe
 

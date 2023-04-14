@@ -61,7 +61,7 @@ jobs:
       # make AVX512_SUPPORT=ON bench_pbs
       - name: Run benchmarks with AVX512
         run: |
-          make bench_pbs
+          make AVX512_SUPPORT=ON bench_pbs
 
       # - name: Parse results
       #   run: |
