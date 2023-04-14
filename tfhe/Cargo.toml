@@ -119,7 +119,6 @@ seeder_x86_64_rdseed = ["concrete-csprng/seeder_x86_64_rdseed"]
 
 minimal_core_crypto_features = [
     "backend_default",
-    "backend_default_parallel",
     "backend_default_serialization",
     "backend_fft",
     "backend_fft_serialization",
