@@ -342,10 +342,10 @@ impl ServerKey {
             terms.lock().unwrap().push(term);
         });
 
-        let terms = terms.into_inner().unwrap();
+        let mut terms = terms.into_inner().unwrap();
 
-        for term in terms {
-            self.unchecked_add_assign(&mut result, &term);
+        for term in terms.iter_mut() {
+            self.smart_add_assign(&mut result, term);
         }
 
         result
