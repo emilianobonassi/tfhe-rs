@@ -48,16 +48,21 @@ impl ServerKey {
         ctxt: &mut RadixCiphertext<PBSOrder>,
         index: usize,
     ) {
+        let is_last_block = index == ctxt.blocks.len() - 1;
+        let block = &mut ctxt.blocks[index];
+        if block.carry_is_empty() {
+            return;
+        }
+
         let (carry, message) = rayon::join(
-            || self.key.carry_extract(&ctxt.blocks[index]),
-            || self.key.message_extract(&ctxt.blocks[index]),
+            || self.key.carry_extract(block),
+            || self.key.message_extract(block),
         );
-        ctxt.blocks[index] = message;
+        *block = message;
 
         //add the carry to the next block
-        if index < ctxt.blocks.len() - 1 {
-            self.key
-                .unchecked_add_assign(&mut ctxt.blocks[index + 1], &carry);
+        if !is_last_block {
+            self.key.unchecked_add_assign(block, &carry);
         }
     }
 

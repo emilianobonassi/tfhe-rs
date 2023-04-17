@@ -80,14 +80,18 @@ impl ServerKey {
         ctxt: &mut RadixCiphertext<PBSOrder>,
         index: usize,
     ) {
-        let carry = self.key.carry_extract(&ctxt.blocks[index]);
+        let is_last_block = index == ctxt.blocks.len() - 1;
+        let block = &mut ctxt.blocks[index];
+        if block.carry_is_empty() {
+            return;
+        }
 
-        ctxt.blocks[index] = self.key.message_extract(&ctxt.blocks[index]);
+        let carry = self.key.carry_extract(block);
+        *block = self.key.message_extract(block);
 
         //add the carry to the next block
-        if index < ctxt.blocks.len() - 1 {
-            self.key
-                .unchecked_add_assign(&mut ctxt.blocks[index + 1], &carry);
+        if !is_last_block {
+            self.key.unchecked_add_assign(block, &carry);
         }
     }
 
